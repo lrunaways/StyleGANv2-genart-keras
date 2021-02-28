@@ -30,12 +30,15 @@ from upfirdn_2d import *
 from layers.other import Dense, normalize_2nd_moment
 
 # ToRGB block.
-def torgb(x, y, latents, res_name, is_grouped, style_strength_map=None): # res = 2..resolution_log2
-    if not is_grouped:
-        t = ModConv2d(rank=2, sampling=None, filters=3, kernel_size=1, demodulate=False, noise=True, act=None, name=res_name+'/ToRGB')([x, latents[0, 0:1]])
+def torgb(x, y, latents, res_name, is_grouped=False, style_strength_map=None): # res = 2..resolution_log2
+    mod_conv = ModConv2d(rank=2, sampling=None, filters=3, kernel_size=1, demodulate=False, noise=True, act=None, name=res_name+'/ToRGB')
+    if res_name[0] in ['4', '8']:
+        x1 = mod_conv([x[:, :, :x.shape[2] // 2, :], latents[1:2]])
+        x2 = mod_conv([x[:, :, x.shape[2] // 2:, :], latents[2:3]])
+        t = tf.concat([x1, x2], axis=2)
     else:
-        t = ModConv2d_grouped(rank=2, sampling=None, filters=3, kernel_size=1, demodulate=False, noise=True, act=None, name=res_name+'/ToRGB')([x, latents])
-        t = tf.reduce_sum(t * style_strength_map, axis=1)
+        t = mod_conv([x, latents[0:1]])
+
     if y is not None:
         t += tf.cast(y, t.dtype)
     return t
