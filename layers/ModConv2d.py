@@ -30,15 +30,12 @@ from upfirdn_2d import *
 from layers.other import Dense, normalize_2nd_moment
 
 # ToRGB block.
-def torgb(x, y, latents, res_name, is_grouped=False, style_strength_map=None): # res = 2..resolution_log2
-    mod_conv = ModConv2d(rank=2, sampling=None, filters=3, kernel_size=1, demodulate=False, noise=True, act=None, name=res_name+'/ToRGB')
-    if res_name[0] in ['4', '8']:
-        x1 = mod_conv([x[:, :, :x.shape[2] // 2, :], latents[1:2]])
-        x2 = mod_conv([x[:, :, x.shape[2] // 2:, :], latents[2:3]])
-        t = tf.concat([x1, x2], axis=2)
+def torgb(x, y, latents, res_name, is_grouped, style_strength_map=None): # res = 2..resolution_log2
+    if not is_grouped:
+        t = ModConv2d(rank=2, sampling=None, filters=3, kernel_size=1, demodulate=False, noise=True, act=None, name=res_name+'/ToRGB')([x, latents[0:1, -1]])
     else:
-        t = mod_conv([x, latents[0:1]])
-
+        t = ModConv2d_grouped(rank=2, sampling=None, filters=3, kernel_size=1, demodulate=False, noise=True, act=None, name=res_name+'/ToRGB')([x, latents])
+        t = tf.reduce_sum(t * style_strength_map, axis=1)
     if y is not None:
         t += tf.cast(y, t.dtype)
     return t
@@ -456,7 +453,7 @@ class ModConv2d_grouped(Layer):
       style = inputs[1][0]
 
       weights = self.kernel[np.newaxis]
-      print(f"conv_inputs: {conv_inputs}, style: {style}, weights: {weights}")
+      # print(f"conv_inputs: {conv_inputs}, style: {style}, weights: {weights}")
       he_std = 1.0 / tf.math.sqrt(tf.dtypes.cast(tf.math.reduce_prod(weights.shape[:-1]), tf.float32))
       runtime_coef = he_std * 1.0
       weights = weights*runtime_coef
@@ -467,42 +464,44 @@ class ModConv2d_grouped(Layer):
         style *= 1 / tf.reduce_max(tf.abs(style), axis=1, keepdims=True)  # Pre-normalize to avoid float16 overflow.
       weights = weights*style[:, np.newaxis, np.newaxis, :, np.newaxis]
 
+
+      # print('demod')
       # Demodulate
       if self.demodulate:############
-          d = tf.math.rsqrt(tf.math.reduce_sum(tf.math.square(weights), axis=[1, 2, 3]) + 1e-8)  # [BO] Scaling factor.
-          print(weights)
-          print(d)
-          weights *= d[:, np.newaxis, np.newaxis, np.newaxis, :]  # [BkkIO] Scale output feature maps.
+          d = tf.math.rsqrt(tf.math.reduce_sum(tf.math.square(weights), axis=[1, 2, 3], keepdims=True) + 1e-8)  # [BO] Scaling factor.
+          weights *= d # [BkkIO] Scale output feature maps.
 
-      conv_inputs = tf.reshape(conv_inputs, [1, -1, conv_inputs.shape[2], conv_inputs.shape[3]]) # Fused => reshape minibatch to convolution groups.
-      # print(weights)
+      # print("conv_inputs before reshaping", conv_inputs)
+      # conv_inputs = tf.reshape(conv_inputs, [1, -1, conv_inputs.shape[2], conv_inputs.shape[3]]) # Fused => reshape minibatch to convolution groups.
+      # print("conv_inputs after reshaping", conv_inputs)
+
+      # print('weights before reshaping: ', weights)
       weights = tf.reshape(tf.transpose(weights, [1, 2, 3, 0, 4]), [weights.shape[1], weights.shape[2], weights.shape[3], -1])
-      # print(weights)
+      # print('weights after reshaping: ', weights)
+
       # Convolve
       padding = 0
       kernel = self.kernel_size[0]
       resample_kernel = [1,3,3,1]
       data_format = 'NHWC' #'NCHW'
       if self.sampling == 'up':
-          print(conv_inputs)
-          print('up')
+          # print('up')
           x = upsample_conv_2d_grouped(conv_inputs, weights, data_format=data_format, k=resample_kernel, padding=padding)
       else:
           padding_mode = {0: 'SAME', -(kernel // 2): 'VALID'}[padding]
           x = tf.nn.conv2d(conv_inputs, weights, data_format=data_format, strides=[1, 1, 1, 1], padding=padding_mode)
-      print('!!!!!!!!!!')
       out_shape = [-1,
-                   self.filters,
-                   style.shape[0],
                    inputs[0].shape[1] * 2 if self.sampling == 'up' else inputs[0].shape[1],
                    inputs[0].shape[2] * 2 if self.sampling == 'up' else inputs[0].shape[2],
+                   style.shape[0],
+                   self.filters,
                    ]
-      print(x)
+      # print(x)
       x = tf.reshape(x, out_shape)  # Fused => reshape convolution groups back to minibatch.
-      print(x)
-      # x = tf.transpose(x, [0, 4, 1, 2, 3])
-      x = tf.transpose(x, [0, 2, 3, 4, 1])
-      print(x)
+      # print(x)
+      x = tf.transpose(x, [0, 3, 1, 2, 4])
+      # x = tf.transpose(x, [0, 2, 3, 4, 1])
+      # print(x)
       # print(x)
       # print(x)
 
