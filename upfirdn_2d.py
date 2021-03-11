@@ -384,8 +384,8 @@ def upsample_conv_2d_grouped(x, w, k=None, factor=2, gain=1, padding=0, data_for
         num_groups = _shape(x, 1) // inC
     else:
         stride = [1, factor, factor, 1]
-        # output_shape = [_shape(x, 0), (_shape(x, 1) - 1) * factor + ch, (_shape(x, 2) - 1) * factor + cw, outC]
-        output_shape = [_shape(x, 1), (_shape(x, 0) - 1) * factor + ch, (_shape(x, 2) - 1) * factor + cw, outC]
+        output_shape = [_shape(x, 0), (_shape(x, 1) - 1) * factor + ch, (_shape(x, 2) - 1) * factor + cw, outC]
+        # output_shape = [_shape(x, 1), (_shape(x, 0) - 1) * factor + ch, (_shape(x, 2) - 1) * factor + cw, outC]
         num_groups = _shape(x, 3) // inC
 
     # Transpose weights.

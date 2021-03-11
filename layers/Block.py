@@ -34,9 +34,9 @@ from layers.ModConv2d import ModConv2d, ModConv2d_grouped
 def Block(x, latents, fmaps, res_name, is_grouped, style_strength_map=None):  # res = 3..resolution_log2
     if not is_grouped:
         x = ModConv2d(rank=2, filters=fmaps, sampling='up', kernel_size=3, noise=True, demodulate=True,
-                        name=str(res_name) + '/Conv0_up')([x, latents[0:1, 0]])
+                        name=str(res_name) + '/Conv0_up')([x, latents[0:1, -1]])
         x = ModConv2d(rank=2, filters=fmaps, sampling=None, kernel_size=3, noise=True, demodulate=True,
-                        name=str(res_name) + '/Conv1')([x, latents[0:1, 0]])
+                        name=str(res_name) + '/Conv1')([x, latents[0:1, -1]])
     else:
         x = ModConv2d_grouped(rank=2, filters=fmaps, sampling='up', kernel_size=3, noise=True, demodulate=True,
                         name=str(res_name) + '/Conv0_up')([x, latents])
