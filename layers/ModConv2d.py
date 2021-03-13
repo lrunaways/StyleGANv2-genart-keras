@@ -217,7 +217,7 @@ class ModConv2d(Layer):
       ##############################
       if self.noise:
           noise = tf.random.normal([tf.shape(x)[0], tf.shape(x)[1], tf.shape(x)[2], 1], dtype=x.dtype)
-          x += noise*self.noise_strength/2
+          x += noise*self.noise_strength/10
 
       x = nn.bias_add(x, self.bias, data_format=data_format)
       if self.act == 'lrelu':
@@ -508,7 +508,7 @@ class ModConv2d_grouped(Layer):
       ##############################
       if self.noise:
           noise = tf.random.normal([tf.shape(x)[0], tf.shape(x)[1], tf.shape(x)[2], 1, 1], dtype=x.dtype)
-          x += noise*self.noise_strength/2
+          x += noise*self.noise_strength/10
       # print(x)
       x = nn.bias_add(x, self.bias, data_format=data_format)
       # print(x)
