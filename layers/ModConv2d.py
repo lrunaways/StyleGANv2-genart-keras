@@ -30,7 +30,7 @@ from upfirdn_2d import *
 from layers.other import Dense, normalize_2nd_moment
 
 
-NOISE_STRENGTH = 0.001
+NOISE_STRENGTH = 0.
 
 # ToRGB block.
 def torgb(x, y, latents, res_name, is_grouped, style_strength_map=None): # res = 2..resolution_log2
