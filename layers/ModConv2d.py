@@ -29,6 +29,9 @@ from tensorflow.python.util.tf_export import keras_export
 from upfirdn_2d import *
 from layers.other import Dense, normalize_2nd_moment
 
+
+NOISE_STRENGTH = 0.001
+
 # ToRGB block.
 def torgb(x, y, latents, res_name, is_grouped, style_strength_map=None): # res = 2..resolution_log2
     if not is_grouped:
@@ -217,7 +220,7 @@ class ModConv2d(Layer):
       ##############################
       if self.noise:
           noise = tf.random.normal([tf.shape(x)[0], tf.shape(x)[1], tf.shape(x)[2], 1], dtype=x.dtype)
-          x += noise*self.noise_strength/10
+          x += noise*self.noise_strength*NOISE_STRENGTH
 
       x = nn.bias_add(x, self.bias, data_format=data_format)
       if self.act == 'lrelu':
@@ -508,7 +511,7 @@ class ModConv2d_grouped(Layer):
       ##############################
       if self.noise:
           noise = tf.random.normal([tf.shape(x)[0], tf.shape(x)[1], tf.shape(x)[2], 1, 1], dtype=x.dtype)
-          x += noise*self.noise_strength/10
+          x += noise*self.noise_strength*NOISE_STRENGTH
       # print(x)
       x = nn.bias_add(x, self.bias, data_format=data_format)
       # print(x)
