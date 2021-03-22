@@ -14,7 +14,8 @@ def load_network(snapshot_path, const_layer_shape, n_styles, middle_input_synth=
     with open(snapshot_path, 'rb') as f:
         weights = pickle.load(f)
     #TODO: auto resolution and n_dense infeence
-    model = StyleGAN(const_shape=const_layer_shape, n_dense=2, resolution=256, middle_input_synth=middle_input_synth, n_styles=n_styles)
+    model = StyleGAN(const_shape=const_layer_shape, n_dense=2, resolution=256, middle_input_synth=middle_input_synth, n_styles=n_styles,
+                     TRUNCATION_PSI=trunc_psi)
     layers_names = []
     for layer in model.layers:
         layers_names.append(layer.name)
