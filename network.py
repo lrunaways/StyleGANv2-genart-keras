@@ -7,10 +7,10 @@ import matplotlib.pyplot as plt
 from layers.other import float_img_to_int8
 from load_network import load_network, get_const_layer
 
-SNAPSHOT_MAIN_PATH = "networks/181220-0240-0338_panels.pkl"
+# SNAPSHOT_MAIN_PATH = "networks/181220-0240-0338_panels.pkl"
 # SNAPSHOT_MAIN_PATH = "networks/dict_2019-04-30-stylegan-danbooru2018-portraits-02095-066083.pkl"
 # SNAPSHOT_MAIN_PATH = "networks/dict_HorseF-Emoji-0040-Pokemon-0040-Simpsons-0016-Pokemon-000032.pkl"
-# SNAPSHOT_MAIN_PATH = "networks/dict_pixelation-003-1080.pkl"
+SNAPSHOT_MAIN_PATH = "networks/dict_pixelation-003-1080.pkl"
 # SNAPSHOT_MAIN_PATH = "networks/dict_TL-0-290-18fid.pkl"
 # SNAPSHOT_MAIN_PATH = "networks/dict_TL-0-290-18fid-TP-w.pkl"
 # SNAPSHOT_MAIN_PATH = "networks/monsters-6-387-17fid.pkl"
@@ -76,7 +76,7 @@ if __name__=="__main__":
         print('Loading network...')
         main_model = load_network(SNAPSHOT_MAIN_PATH, main_const.shape[1:3], middle_input_synth=None, trunc_psi=TRUNCATION_PSI, n_styles=n_styles)
         print('Predicting main...')
-        main_images = main_model.predict([styles[np.newaxis], main_const] + style_masks)
+        main_images = main_model.predict([styles[np.newaxis], main_const] + style_masks + [np.array([[TRUNCATION_PSI,]])])
 
         main_images = float_img_to_int8(main_images)
         main_images = main_images[-1][0]
