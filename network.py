@@ -1,14 +1,11 @@
-import pickle
 import PIL
-from PIL.PngImagePlugin import PngImageFile, PngInfo
+from PIL.PngImagePlugin import PngInfo
 
-import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
-import cv2
 
 from layers.other import float_img_to_int8
-from networks.load_network import load_network, get_const_layer
+from load_network import load_network, get_const_layer
 
 SNAPSHOT_MAIN_PATH = "networks/181220-0240-0338_panels.pkl"
 # SNAPSHOT_MAIN_PATH = "networks/dict_2019-04-30-stylegan-danbooru2018-portraits-02095-066083.pkl"
