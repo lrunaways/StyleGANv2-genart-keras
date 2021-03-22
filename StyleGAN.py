@@ -9,14 +9,14 @@ from layers.other import *
 from layers.ModConv2d import ModConv2d, ModConv2d_grouped, torgb
 from layers.Block import Block
 
-def StyleGAN(const_shape, resolution, n_dense=2, n_styles=5, middle_input_synth=None, TRUNCATION_PSI=0.7):
+def StyleGAN(const_shape, resolution, n_dense=2, n_styles=5, middle_input_synth=None):
     """
 
     :param const_shape:
     :param middle_input_synth: None - full network; 8, 16, ... - input resolution
     :return:
     """
-    def G_mapping(input_, mapping_layers, dlatent_broadcast, dlatens_size):
+    def G_mapping(input_, truncation_psi, mapping_layers, dlatent_broadcast, dlatens_size):
         styles_shape = input_.shape[1]
         dlatent_avg = Dlatent_avg(512)(input_)
         x = normalize_2nd_moment(input_)
@@ -25,7 +25,7 @@ def StyleGAN(const_shape, resolution, n_dense=2, n_styles=5, middle_input_synth=
             x = Dense(dlatens_size, lrmul=0.01, name=f'Dense{layer_idx}')(x)
         x = tf.reshape(x, (-1, styles_shape, 512))
         x = tf.tile(x[:, np.newaxis], [1, dlatent_broadcast, 1, 1])
-        x = lerp(x, dlatent_avg, TRUNCATION_PSI)
+        x = lerp(x, dlatent_avg, truncation_psi)
         return x
 
     def G_synthesis(W, const_layer, style_strength_maps):
@@ -67,6 +67,7 @@ def StyleGAN(const_shape, resolution, n_dense=2, n_styles=5, middle_input_synth=
     #
     input_z = tf.keras.layers.Input(shape=[n_styles, 512], name='input_z')
     input_const = tf.keras.layers.Input(shape=[const_shape[0], const_shape[1], 512], name='input_const')
+    input_truncation_psi = tf.keras.layers.Input(shape=[1,], name='input_truncation_psi')
 
     n_style_strength_maps = 7  # int(np.log2(resolution))
     style_strength_maps = []
@@ -80,11 +81,8 @@ def StyleGAN(const_shape, resolution, n_dense=2, n_styles=5, middle_input_synth=
         input_style_newaxis = input_style_map[..., np.newaxis]
         style_strength_maps_inputs.append(input_style_map)
         style_strength_maps.append(input_style_newaxis)
-    W = G_mapping(input_z, mapping_layers=n_dense, dlatent_broadcast=14, dlatens_size=512)
+    W = G_mapping(input_z, input_truncation_psi, mapping_layers=n_dense, dlatent_broadcast=14, dlatens_size=512)
     synth_out, middle_input = G_synthesis(W, input_const, style_strength_maps)
 
-    if middle_input is None:
-        input_ = [input_z, input_const] + style_strength_maps_inputs
-    else:
-        input_ = [input_z] + middle_input
+    input_ = [input_z, input_const] + style_strength_maps_inputs + [input_truncation_psi]
     return tf.keras.Model(inputs=input_, outputs=synth_out)
