@@ -9,7 +9,7 @@ from layers.other import *
 from layers.ModConv2d import ModConv2d, ModConv2d_grouped, torgb
 from layers.Block import Block
 
-def StyleGAN(const_shape, resolution, n_dense=2, n_styles=5, middle_input_synth=None):
+def StyleGAN(const_shape, resolution, n_dense=2, n_styles=5, middle_input_synth=None, microstyle_layer=6):
     """
 
     :param const_shape:
@@ -42,7 +42,7 @@ def StyleGAN(const_shape, resolution, n_dense=2, n_styles=5, middle_input_synth=
         # if middle_input_synth is None:
         # Layers for 4x4 resolution.
         middle_input = None
-        style = W[:, 0, 0:2]
+        style = W[:, 0, :-1]
         y = None
         x = ModConv2d_grouped(rank=2, name="4x4/Conv", kernel_size=3, sampling=None, filters=nf(1), padding='same')([const_layer, style])
         x = tf.reduce_sum(x*style_strength_maps[0], axis=1)
@@ -60,9 +60,11 @@ def StyleGAN(const_shape, resolution, n_dense=2, n_styles=5, middle_input_synth=
                 style_strength_map = None
             if res == 4:
                 print(W.shape)
-            if res == 7:
-                pass
-                style = W[:, 0, 0:3:1]
+            if res == microstyle_layer:
+                # style = tf.concat([W[:, 0, :-2], W[:, 0, -2:-1]], axis=1)
+                style = W[:, 0, -1][:, np.newaxis]
+                # is_grouped = True
+
                 # x = x[:, :12, :, :]
                 # y = y[:, :12, :, :]
                 # x = tf.concat([x[:, 1:6, :, :], x[:, 12:15, :, :], x[:, 21:, :, :]], axis=1)
