@@ -30,9 +30,7 @@ def StyleGAN(const_shape, resolution, n_dense=2, n_styles=5, middle_input_synth=
 
     def G_synthesis(W, const_layer, style_strength_maps):
         data_format = 'NHWC'
-        def nf(stage):
-            f = [512, 512, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
-            return f[stage-1]
+        def nf(stage): return np.clip(int((16*resolution) / (2.0 ** (stage * 1))), 1, 512)
         # x = ModConv2d(rank=2, filters=512, kernel_size=3, sampling='down', padding='same')([base_res, W])
 
         resolution_log2 = int(np.log2(resolution))

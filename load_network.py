@@ -13,8 +13,13 @@ from StyleGAN import StyleGAN
 def load_network(snapshot_path, const_layer_shape, n_styles, middle_input_synth=None, trunc_psi=0.7, microstyle_layer=6):
     with open(snapshot_path, 'rb') as f:
         weights = pickle.load(f)
-    #TODO: auto resolution and n_dense infeence
-    model = StyleGAN(const_shape=const_layer_shape, n_dense=2, resolution=256, middle_input_synth=middle_input_synth,
+    # inference resolution and number of dense layers
+    all_resolutions = [x.split('/')[1] for x in list(weights.keys()) if x.find('RGB/bias') != -1]
+    max_resolution = max([int(x.split('x')[0]) for x in all_resolutions])
+    all_dense = [x.split('/')[1] for x in list(weights.keys()) if x.find('Dense') != -1]
+    max_dense = max([int(x.split('Dense')[1]) for x in all_dense]) + 1
+
+    model = StyleGAN(const_shape=const_layer_shape, n_dense=max_dense, resolution=max_resolution, middle_input_synth=middle_input_synth,
                      n_styles=n_styles, microstyle_layer=microstyle_layer)
     layers_names = []
     for layer in model.layers:
@@ -31,19 +36,25 @@ def load_network(snapshot_path, const_layer_shape, n_styles, middle_input_synth=
                     continue
                 idx = weights_to_idx[weight_name_splitted[-1]]
                 layer = model.get_layer(weight_name[len(weight_name_splitted[0]) + 1: -len(weight_name_splitted[-1]) - 1])
-                layer.variables[idx].assign([weights[weight_name]] if idx == 4 else weights[weight_name])
+                input_weights = [weights[weight_name]] if idx == 4 else weights[weight_name]
+                layer.variables[idx].assign(input_weights)
                 print('G_synthesis:', weight_name, ':', layer.variables[idx].name)
                 # pass
-            except Exception:
+            except ValueError as e:
                 print('G_synthesis: ', weight_name, ': BAD')
+                print(f'\tnetwork: {layer.variables[idx].shape}, input: {input_weights.shape}')
+                pass
         elif weight_name_splitted[0] == 'G_mapping':
             try:
                 idx = weights_to_idx[weight_name_splitted[-1]]
                 layer = model.get_layer(weight_name[len(weight_name_splitted[0]) + 1: -len(weight_name_splitted[-1]) - 1])
-                print('G_mapping: ', weight_name, ':', layer.variables[idx].name)
+                input_weights = [weights[weight_name]] if idx == 4 else weights[weight_name]
                 layer.variables[idx].assign([weights[weight_name]] if idx == 4 else weights[weight_name])
+                print('G_mapping: ', weight_name, ':', layer.variables[idx].name)
             except Exception:
                 print('G_mapping: ', weight_name, ': BAD')
+                print(f'\tnetwork: {layer.variables[idx].shape}, input: {input_weights.shape}')
+                pass
         elif weight_name_splitted[0] == 'dlatent_avg':
             layer = model.get_layer(weight_name_splitted[0])
             print('dlatent_avg: ', weight_name, ':', layer.variables[0].name)
